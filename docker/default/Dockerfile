@@ -51,4 +51,3 @@ RUN cp -R /wings-src/target/wings-portal-4.0-SNAPSHOT /usr/local/tomcat/webapps/
 COPY ./config/default/wings-portal.xml /usr/local/tomcat/webapps/wings-portal/META-INF/context.xml
 
 WORKDIR /usr/local/tomcat
-

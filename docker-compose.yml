@@ -5,7 +5,7 @@ services:
     image: "wings"
     build:
       context: .
-      dockerfile: docker/default/Dockerfile
+      dockerfile: docker/topoflow/Dockerfile
     environment:
       WINGS_MODE: dind
     volumes:
