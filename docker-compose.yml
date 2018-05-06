@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  wings:
+  wings-topoflow:
     image: "wings"
     build:
       context: .

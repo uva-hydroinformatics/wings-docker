@@ -1,7 +1,7 @@
 #
 #  Should use "initialize_scalar()" for all scalar assignments.
 #  See the Notes for that method.  Search for "np.float64(0".
-#      
+#
 #  Copyright (c) 2009-2017, Scott D. Peckham
 #
 #  Feb 2017. Added get_var_itemsize(), get_var_nbytes().
@@ -151,6 +151,7 @@
 
 import numpy as np
 import os
+import errno
 import sys
 import time
 import traceback        # (10/10/10)
@@ -161,7 +162,7 @@ import traceback        # (10/10/10)
 # See initialize_basin_vars() below.
 #--------------------------------------------
 # import basins
-   
+
 ## import cfg_files as cfg   # (not used)
 
 import outlets          ## (9/19/14)
@@ -193,11 +194,11 @@ class BMI_component:
         # self.CCA              = tf_utils.TF_Use_CCA()
         # self.USE_GUI_SETTINGS = False
         ######################################################
-        
+
         ## self.DEBUG    = True
         self.DEBUG       = False
         self.SKIP_ERRORS = False
-        self.SILENT      = True   # (new default: 11/16/11) 
+        self.SILENT      = True   # (new default: 11/16/11)
         self.REPORT      = False
         self.DONE        = False
         self.status      = 'created'   # (OpenMI 2.0 conventions)
@@ -208,13 +209,13 @@ class BMI_component:
         self.case_prefix      = None
         self.cfg_prefix       = None       ###### (9/18/14)
         self.comp_status      = 'Enabled'
-        
+
         # NB! This probably won't work here, because a driver
         #     may be instantiated later that then changes the
         #     current working directory.
 ##        self.cfg_directory  = os.getcwd()
 ##        self.cfg_prefix     = 'Case5'
-        
+
     #   __init__()
     #-------------------------------------------------------------------
     def get_status(self):
@@ -277,7 +278,7 @@ class BMI_component:
     #-------------------------------------------------------------------
     def get_grid_shape(self, long_var_name):
 
-        #------------------------------------------------- 
+        #-------------------------------------------------
         # Note:  This does not assume that all var_names
         #        share the same grid (scalars, etc.)
         #-------------------------------------------------
@@ -294,13 +295,13 @@ class BMI_component:
         #-------------------------------------------------------
 #         if not(hasattr( self, 'grid_info' )):
 #             self.read_grid_info()
-# 
+#
 #         info  = self.grid_info
 #         shape = np.array( [0, info.ny, info.nx] )
 #         ## shape = np.array( [info.nx, info.ny, 0] )
- 
+
         return shape
-    
+
     #   get_grid_shape()
     #-------------------------------------------------------------------
     def get_grid_spacing(self, long_var_name):
@@ -337,16 +338,16 @@ class BMI_component:
         #       every var_name that has rank = 2.
         #---------------------------------------------------
         # Note: Ordering must be [z0, y0, x0].
-        #--------------------------------------------------- 
+        #---------------------------------------------------
         rank = self.get_var_rank( long_var_name )
-        if (rank == 2):       
+        if (rank == 2):
 			if not(hasattr( self, 'grid_info' )):
 				self.read_grid_info()
 
 			info = self.grid_info
 			corner = np.array( [0, info.y_south_edge, info.x_west_edge] )
 			## corner = np.array( [info.x_west_edge, info.y_south_edge, 0] )
-		
+
 			return corner
         else:
             return None
@@ -366,7 +367,7 @@ class BMI_component:
             print '######################################################'
             print ' ERROR: Could not find grid attribute: ' + att_name
             print '######################################################'
-            print ' '            
+            print ' '
 
     #   get_grid_attribute()
     #-------------------------------------------------------------------
@@ -382,7 +383,7 @@ class BMI_component:
         #------------------------------------------
         if (self.DEBUG):
             print 'Process component: Reading grid info...'
-        
+
         self.grid_info_file = (self.in_directory +
                                self.site_prefix + '.rti')
         info = rti_files.read_info( self.grid_info_file )
@@ -396,7 +397,7 @@ class BMI_component:
             print '### In BMI_base.read_grid_info():'
             print '### out_directory =', self.out_directory
             print ' '
-            
+
             self.grid_info_file = (self.out_directory +
                                    self.case_prefix + '.rti')
             info = rti_files.read_info( self.grid_info_file )
@@ -404,7 +405,7 @@ class BMI_component:
         # print '##### In BMI_base.read_grid_info():'
         # print '##### in_directory   =', self.in_directory
         # print '##### grid_info_file =', self.grid_info_file
-        
+
         #----------------------
         # Convenient synonyms
         #-----------------------------------------------------
@@ -422,7 +423,7 @@ class BMI_component:
         self.grid_info    = self.rti
         self.grid_info.nx = self.rti.ncols
         self.grid_info.ny = self.rti.nrows
-        
+
         #------------------------------------------------
         # Get grid cell areas, "da", which is either a
         # scalar (if same for all grid cells) or a grid
@@ -456,7 +457,7 @@ class BMI_component:
         #-------------------------------------------------------------
         items = ['None']
         return np.array( items )   # (string array vs. list)
-    
+
     #   get_input_var_names()
     #-------------------------------------------------------------------
     def get_output_var_names(self):
@@ -466,7 +467,7 @@ class BMI_component:
         #------------------------------------------------------
         items = ['None']
         return np.array( items )   # (string array vs. list)
-    
+
     #   get_output_var_names()
     #-------------------------------------------------------------------
     def get_var_name(self, long_var_name):
@@ -504,9 +505,9 @@ class BMI_component:
                       'h_snow':    'm' }
 
         var_name = self.get_var_name( long_var_name )
-        
+
         return units_map[ var_name ]
-    
+
     #   get_var_units()
     #-------------------------------------------------------------------
     def get_var_rank(self, long_var_name):
@@ -516,7 +517,7 @@ class BMI_component:
         #----------------------------------------------
         # Can always use np.ndim(), but can only
         # use var.ndim if var has type ndarray.
-        # This should now work if var is ord. scalar.      
+        # This should now work if var is ord. scalar.
         #----------------------------------------------
         var_name = self.get_var_name( long_var_name )
         try:
@@ -556,7 +557,7 @@ class BMI_component:
 #         except:
 #             dtype = 'unknown'
 #         return str(dtype)       # (need str() here)
-  
+
     #   get_var_type()
     #-------------------------------------------------------------------
     def get_var_itemsize(self, long_var_name):
@@ -586,17 +587,17 @@ class BMI_component:
             -1
 
     #   get_var_nbytes()
-    #-------------------------------------------------------------------     
+    #-------------------------------------------------------------------
     def get_values(self, long_var_name):
 
-        #------------------------------------------------------- 
+        #-------------------------------------------------------
         # Note: The value returned by getattr() will have rank
         #       and data type that goes with long_var_name.
-        #------------------------------------------------------- 
+        #-------------------------------------------------------
         try:
             var_name = self.get_var_name( long_var_name )
             return getattr(self, var_name)   ## (2/19/13)
-         
+
             #-----------------------------------
             # Using exec works, but is slower.
             #-----------------------------------
@@ -617,8 +618,8 @@ class BMI_component:
             print 'ERROR in BMI_base.get_values()'
             print '    for var_name =', var_name
             print '    Returning 0.'
- 
-            #-----------------------------------------           
+
+            #-----------------------------------------
             # We could also call get_var_rank() and
             # return an array of the right rank, but
             # a 0D array seems better.
@@ -626,14 +627,14 @@ class BMI_component:
             ## value = np.float64(0)   # (scalar)
             dtype = self.get_var_type( long_var_name )
             value = np.array(0, dtype=dtype)  # (0D array)
-    
-            #---------------------------------------------        
+
+            #---------------------------------------------
             # Save new variable with this name into self
             # to avoid repeating this message later.
             #---------------------------------------------
             setattr(self, var_name, value)
             return value
-        
+
     #   get_values()
     #-------------------------------------------------------------------
     def set_values(self, long_var_name, value):
@@ -647,10 +648,10 @@ class BMI_component:
         # But we can't apply np.float64() to the value as we did
         # before or it destroys the reference.
         # See BMI_base.initialize_scalar() for more information.
-        #--------------------------------------------------------------- 
+        #---------------------------------------------------------------
         var_name = self.get_var_name( long_var_name )
         setattr( self, var_name, value )  ## (2/19/13)
-         
+
     #   set_values()
     #-------------------------------------------------------------------
     def get_values_at_indices(self, long_var_name, IDs):
@@ -668,7 +669,7 @@ class BMI_component:
         #        Use of getattr() has not been tested. (2/19/13)
         #---------------------------------------------------------
         var_name = self.get_var_name( long_var_name )
-        
+
         try:
             var_IDs_name = var_name + '.flat[IDs]'
             result = getattr(self, var_IDs_name)  ## (2/19/13)
@@ -678,7 +679,7 @@ class BMI_component:
             print '    Returning zeros.'
             dtype = self.get_var_type( long_var_name )
             return np.zeros(len(IDs), dtype=dtype)
-        
+
     #   get_values_at_indices()
     #-------------------------------------------------------------------
     def set_values_at_indices(self, long_var_name, IDs, values):
@@ -690,17 +691,17 @@ class BMI_component:
         var_name = self.get_var_name( long_var_name )
         var_IDs_name = var_name + '.flat[IDs]'
         setattr( self, var_IDs_name, values )  ## (2/19/13)
-        
-    #   set_values_at_indices()          
+
+    #   set_values_at_indices()
     #-------------------------------------------------------------------
     # BMI methods to get time-related info
     #-------------------------------------------------------------------
     def get_time_step(self):
 
         return np.float64( self.dt )
-    
+
     #   get_time_step()
-    #-------------------------------------------------------------------        
+    #-------------------------------------------------------------------
     def get_time_units(self):
 
         #-----------------------------------------------------------
@@ -713,8 +714,8 @@ class BMI_component:
         #-----------------------------------------------------------
         unit_str = self.get_attribute( 'time_units' )
         return unit_str
-        ## return self.time_units  
-    
+        ## return self.time_units
+
     #   get_time_units()
 
     #-------------------------------------------------------------------
@@ -727,13 +728,13 @@ class BMI_component:
         #        for here and process differently.
         #--------------------------------------------------------
         return np.float64( 0  )
-    
+
     #   get_start_time()
     #-------------------------------------------------------------------
     def get_current_time(self):
 
         return self.time
-    
+
     #   get_current_time()
     #-------------------------------------------------------------------
     def get_end_time(self):
@@ -750,24 +751,24 @@ class BMI_component:
         #---------------------------------
         dt_type    = self.get_attribute( 'time_step_type' )
         COMPUTABLE = (dt_type == 'fixed') and (hasattr(self, 'n_steps'))
-        
+
         if (hasattr( self, 'stop_code' )):
             if (self.stop_code != 0):
                 COMPUTABLE = False  # (overrides COMPUTABLE above)
 
         if (COMPUTABLE):
             return np.float64( self.n_steps * self.dt )
-        else:  
+        else:
             print '##############################################'
             print ' ERROR: Unable to compute model stop_time.'
             print '##############################################'
             print ' '
-            return np.float64( -1 )           
-            
+            return np.float64( -1 )
+
     #   get_end_time()
     #-------------------------------------------------------------------
 #     def get_time(self, when='current'):
-# 
+#
 #         #----------------------------------------------------------
 #         # Note:  The "when" argument can be: current, start, end.
 #         #----------------------------------------------------------
@@ -782,33 +783,33 @@ class BMI_component:
 #             return np.float64( 0 )
 #         else:
 #             pass  # (continue below)
-# 
+#
 #         #--------------------------------------------------
 #         # Does model have a "stop_time" attribute ?
 #         # Even if it does, it may not be honored exactly.
 #         #--------------------------------------------------
 #         if (hasattr( self, 'stop_time' )):
 #             return np.float64( self.stop_time )
-# 
+#
 #         #---------------------------------
 #         # Can we compute the stop_time ?
 #         #---------------------------------
 #         dt_type    = self.get_attribute( 'time_step_type' )
 #         COMPUTABLE = (dt_type == 'fixed') and (hasattr(self, 'n_steps'))
-#         
+#
 #         if (hasattr( self, 'stop_code' )):
 #             if (self.stop_code != 0):
 #                 COMPUTABLE = False  # (overrides COMPUTABLE above)
-# 
+#
 #         if (COMPUTABLE):
 #             return np.float64( self.n_steps * self.dt )
-#         else:  
+#         else:
 #             print '##############################################'
 #             print ' ERROR: Unable to compute model stop_time.'
 #             print '##############################################'
 #             print ' '
 #             return np.float64( -1 )
-#         
+#
 #     #   get_time()
     #-------------------------------------------------------------------
     # BMI methods for fine-grained control of model
@@ -818,7 +819,7 @@ class BMI_component:
         self.status   = 'initializing'  # (OpenMI 2.0 convention)
         self.mode     = mode
         self.cfg_file = cfg_file
-        
+
         #-----------------------------------------------
         # Load component parameters from a config file
         # Will use cfg_file from above.
@@ -830,7 +831,7 @@ class BMI_component:
         self.initialize_time_vars()
 
         #---------------------------------------------
-        # Open input files needed to initialize vars 
+        # Open input files needed to initialize vars
         #---------------------------------------------
         self.open_input_files()
         self.read_input_files()
@@ -838,7 +839,7 @@ class BMI_component:
 ##        self.open_output_files()
 
         self.status = 'initialized'  # (OpenMI 2.0 convention)
-        
+
     #   initialize()
     #-------------------------------------------------------------------
 ##    def update(self, time_seconds=None):
@@ -859,7 +860,7 @@ class BMI_component:
 ##
 ##        #-------------------------------
 ##        # Check for NaNs, etc. in var1
-##        #-------------------------------    
+##        #-------------------------------
 ##        # self.check_var1()
 ##
 ##        #------------------------------------------
@@ -872,7 +873,7 @@ class BMI_component:
 ##        #----------------------------------------------
 ##        self.write_output_files(time_seconds)
 ##        self.status = 'updated'  # (OpenMI 2.0 convention)
-##        
+##
 ##    #   update()
     #-------------------------------------------------------------------
     def finalize(self):
@@ -881,7 +882,7 @@ class BMI_component:
         self.close_input_files()    ##  TopoFlow input "data streams"
         self.close_output_files()
         self.status = 'finalized'  # (OpenMI 2.0 convention)
-        
+
     #   finalize()
     #-------------------------------------------------------------------
     def run_model(self, cfg_directory=None, cfg_prefix=None,
@@ -908,8 +909,8 @@ class BMI_component:
         # site_prefix and case_prefix
         #---------------------------------------------
         self.initialize( cfg_prefix=cfg_prefix, mode='driver' )
-            
-        #----------------------------------------------------------- 
+
+        #-----------------------------------------------------------
         # Note:  If the number of timesteps is specified in a
         #        component's CFG file and is then saved by
         #        "read_cfg_file()" as "n_steps" then we should
@@ -925,7 +926,7 @@ class BMI_component:
         # else:
             # (Use the n_steps argument.)
 
-        #-------------------------------------------        
+        #-------------------------------------------
         # Note: __init__() sets self.DONE to False
         #-------------------------------------------
         while not(self.DONE):
@@ -938,7 +939,7 @@ class BMI_component:
                     print 'time_index =', self.time_index
                 self.update()
                 # self.update( -1 )  # (BMI later: use own dt)
-            else:   
+            else:
                 try:
                     self.update()
                     # self.update( -1 )  # (BMI later: use own dt)
@@ -981,7 +982,7 @@ class BMI_component:
         ### if (self.mode == 'nondriver'):
         if (self.mode != 'driver'):
             return
-        
+
         if (self.stop_code == 0):
             #---------------------
             # Stop after n_steps
@@ -989,13 +990,13 @@ class BMI_component:
             TIMES_UP = (self.time_index >= self.n_steps)
         elif (self.stop_code == 1):
             #-----------------------
-            # Stop after stop_time 
+            # Stop after stop_time
             #-----------------------
             TIMES_UP = (self.time >= self.stop_time)
         elif (self.stop_code == 2):
             #-----------------------------------------
             # Stop if "steady-state", but only works
-            # as written here for global timesteps. 
+            # as written here for global timesteps.
             #-----------------------------------------
             TIMES_UP = (self.dz_max < self.dz_tolerance)
 
@@ -1010,13 +1011,13 @@ class BMI_component:
         # Start the clock
         #------------------
         self.start_time = time.time()
-        
+
         #--------------------------------
         # Initialize the time variables
         #--------------------------------
         self.time_units = units.lower()
         self.time_index = np.int32(0)
-        self.time       = self.initialize_scalar(0, dtype='float64') 
+        self.time       = self.initialize_scalar(0, dtype='float64')
         self.DONE       = False
 
         #-------------------------------------------
@@ -1035,13 +1036,13 @@ class BMI_component:
         #---------------------------------------
         if not(hasattr(self, 'n_steps')):
             self.n_steps = 1
- 
+
         #--------------------------
         # Time conversion factors
         #--------------------------
         self.sec_per_year = np.float64(365) * 24 * 3600
         self.min_per_year = np.float64(365) * 24 * 60
-        
+
         #-------------------------------------------
         # For backward compatibility with TopoFlow
         #------------------------------------------------
@@ -1050,7 +1051,7 @@ class BMI_component:
         #------------------------------------------------
         self.time_sec = self.initialize_scalar(0, dtype='float64')
         self.time_min = self.initialize_scalar(0, dtype='float64')
-            
+
         #--------------------------------------------
         # For print_time_and_value() function below
         #--------------------------------------------
@@ -1058,10 +1059,10 @@ class BMI_component:
         # print values at time zero. (6/29/10)
         #--------------------------------------------
         self.last_print_time = time.time() - 100.0
-        
+
 ##        self.last_check_time  = time.time()  # (for user interrupt)
 ##        self.last_plot_time   = np.float32(0.0)   ### CHECK ###
-        
+
     #   initialize_time_vars()
     #-------------------------------------------------------------------
     def update_time(self, dt=-1):
@@ -1070,7 +1071,7 @@ class BMI_component:
         # Note: The BMI update() method has a dt argument
         #       that is passed to this routine.
         #--------------------------------------------------
-        
+
         #---------------------
         # Increment the time
         #---------------------
@@ -1112,7 +1113,7 @@ class BMI_component:
         # Moved here for new framework approach. (5/18/12)
         #---------------------------------------------------
         self.check_finished()
-                
+
     #   update_time()
     #-------------------------------------------------------------------
     def print_time_and_value(self, var, var_name='Q_out',
@@ -1125,7 +1126,7 @@ class BMI_component:
         #-----------------------------------------
         if (self.time_index == 0):
             print 'Will print values every', interval, 'seconds.'
-            
+
         #---------------------------------------------------
         # Note: Print the model time, in minutes, and the
         #       current value of "var", at the specified
@@ -1141,19 +1142,19 @@ class BMI_component:
                 time_units_str = ' [min]'
             else:
                 cur_time = self.time
-                time_units_str = ' [' + self.time_units + ']' 
+                time_units_str = ' [' + self.time_units + ']'
             time_str = 'Time = ' + ("%10.2f" % cur_time)
             time_str = time_str + time_units_str
             #-------------------------------------------------
             var_str  = var_name + ' = ' + ("%10.5f" % var)
-            var_str  = var_str  + ' ' + units_name          
-            #-------------------------------------------------      
+            var_str  = var_str  + ' ' + units_name
+            #-------------------------------------------------
             print (time_str + ',  ' + var_str)
             #-----------------------------------------------------
             if (PRINT_INDEX):
                 index = (self.time_index + 1)  # (starts at 0)
                 print 'n =', index, 'of', self.n_steps
-            #-----------------------------------------------------                
+            #-----------------------------------------------------
             self.last_print_time = time.time()
 
     #   print_time_and_value()
@@ -1161,14 +1162,14 @@ class BMI_component:
     def get_run_time_string(self, proc_name='component',
                             sec_digits=4, seconds=None,
                             SILENT=None):
-                            ### SUB_PROCESS=False) 
+                            ### SUB_PROCESS=False)
 
         #------------------------------------------------------
         # If "seconds" argument is only provided for testing.
         # You can provide this value to make sure that the
         # minuts, hours, days, etc. are computed correctly.
         #------------------------------------------------------
-        if (seconds == None):    
+        if (seconds == None):
             finish  = time.time()
             seconds = (finish - self.start_time)
 
@@ -1185,7 +1186,7 @@ class BMI_component:
 ##        years_per_hour = (sim_time_years / run_time_hours)
 ##        print ' '
 ##        print 'Years per hour =', years_per_hour
-        
+
         #----------------------------------
         # Compute minutes, hours and days
         #----------------------------------
@@ -1201,33 +1202,33 @@ class BMI_component:
         #secs_left = long(seconds) mod 3600L
         #minutes   = (secs_left  /  60L)
         #seconds   = (secs_left mod 60L)
-        
+
         #----------------------------
         # Construct the time string
         #----------------------------
         time_string = ''
         #--------------------------------------------------------
-        if (days > 0):    
-            if (days > 1):    
+        if (days > 0):
+            if (days > 1):
                 e0 = ' days, '
-            else:    
+            else:
                 e0 = ' day, '
             time_string += str(days) + e0
         #--------------------------------------------------------
-        if (hours > 0):    
-            if (hours > 1):    
+        if (hours > 0):
+            if (hours > 1):
                 e1 = ' hours, '
-            else:    
+            else:
                 e1 = ' hour, '
             time_string += str(hours) + e1
         #--------------------------------------------------------
-        if (minutes > 0):    
-            if (minutes > 1):    
+        if (minutes > 0):
+            if (minutes > 1):
                 e2 = ' minutes, '
-            else:    
+            else:
                 e2 = ' minute, '
             time_string += str(minutes) + e2
-        
+
         #-----------------------------------------
         # Default is 4 digits after the decimal.
         #-----------------------------------------
@@ -1235,29 +1236,29 @@ class BMI_component:
         time_string += str(seconds) + dec_pastr + ' seconds.'
 
         return time_string
-            
-##            if (SUB_PROCESS):    
+
+##            if (SUB_PROCESS):
 ##                PART1 = '>> '
-##            else:    
+##            else:
 ##                PART1 = ''
 ##            print (PART1 + 'Run time for ' + procname + ' = ')
 ##            print (PART1 + time_string)
 ##            print ' '
-     
+
     #   get_run_time_string()
     #-------------------------------------------------------------------
     def print_run_time(self, proc_name='component',
                        sec_digits=4, seconds=None,
                        SILENT=None):
-                       ### SUB_PROCESS=False) 
+                       ### SUB_PROCESS=False)
 
 
         print ('Run time for ' + proc_name + ' = ')
         print  self.get_run_time_string()
         print ' '
-     
+
     #   print_run_time()
-    #-------------------------------------------------------------------    
+    #-------------------------------------------------------------------
     def print_final_report(self, comp_name='BMI component',
                            mode='nondriver'):
 
@@ -1267,7 +1268,7 @@ class BMI_component:
 
         if not(hasattr( self, 'in_directory' )):
             return   # (2/20/12)
-        
+
         #-------------------
         # Print the report
         #-------------------
@@ -1287,11 +1288,11 @@ class BMI_component:
         #-----------------------------------
         sim_units    = ' [' + self.time_units + ']'
         sim_time_str = str(self.time) + sim_units
-        
+
         #----------------------------
         # Construct run time string
         #----------------------------
-        run_time_str = self.get_run_time_string() 
+        run_time_str = self.get_run_time_string()
 
         print 'Simulated time:      ' + sim_time_str
         print 'Program run time:    ' + run_time_str
@@ -1307,18 +1308,18 @@ class BMI_component:
         ## finish_str = ': Finished. (' + self.case_prefix + ')'
         ## print finish_str
         ## print comp_name + finish_str
-        
+
     #   print_final_report()
-    #-------------------------------------------------------------------    
+    #-------------------------------------------------------------------
     def print_traceback(self, caller_name='TopoFlow'):
 
         print '################################################'
         print ' ERROR encountered in ' + caller_name
         print '       Please check your input parameters.'
         print '################################################'
-        
+
         traceback.print_exc()
-        
+
     #   print_traceback()
     #-------------------------------------------------------------------
     def read_path_info(self):
@@ -1375,7 +1376,7 @@ class BMI_component:
             line  = cfg_unit.readline()
             if (line == ''):
                 break                  # (reached end of file)
-            
+
             COMMENT = (line[0] == '#')
             #--------------------------------------------
             # Using "|" as a delimiter means we can use
@@ -1431,7 +1432,7 @@ class BMI_component:
 		if (index != -1):
 			var = getattr( self, var_name )
 			var[ index ] = value
-		else: 
+		else:
 			setattr(self, var_name, value)
 
     #   setattr_TF()
@@ -1464,7 +1465,7 @@ class BMI_component:
 #         cfg_extension = self.get_attribute( 'cfg_extension' )  # (10/26/11)
 #         cfg_directory = (os.getcwd() + os.sep)
 #         file_name     = (self.cfg_prefix + cfg_extension)
-#         self.cfg_file = (cfg_directory + file_name) 
+#         self.cfg_file = (cfg_directory + file_name)
 
         #------------------------
         # Does CFG file exist ?
@@ -1493,7 +1494,7 @@ class BMI_component:
             line  = cfg_unit.readline()
             if (line == ''):
                 break                  # (reached end of file)
-            
+
             COMMENT = (line[0] == '#')
             #--------------------------------------------
             # Using "|" as a delimiter means we can use
@@ -1584,7 +1585,7 @@ class BMI_component:
                         self.setattr_TF( var_base, placeholder, index )
                         READ_FILENAME = True
 
-                #-----------------------------------           
+                #-----------------------------------
                 # Read a value of type "var_type"
                 #-----------------------------------
                 # Convert scalars to numpy scalars
@@ -1665,7 +1666,7 @@ class BMI_component:
                             self.setattr_TF( var_base, value_str, index )
                         else:
                             #-------------------------------------------
-                            # A large number of variables end up here, 
+                            # A large number of variables end up here,
                             # e.g. all var_names ending in "_type",
                             # and all output filenames.
                             #-------------------------------------------------------
@@ -1674,7 +1675,7 @@ class BMI_component:
                             # above when we read "n_layers".
                             #-------------------------------------------------------
                             self.setattr_TF( var_base, value_str, index )
-                
+
                     #------------------------
                     # For testing (2/16/17)
                     #------------------------
@@ -1695,7 +1696,7 @@ class BMI_component:
     #   read_config_file()
     #-------------------------------------------------------------------
     def initialize_config_vars(self):
-   
+
         #-------------------------------------------------------------
         # Note: EMELI calls bmi.initialize() with full cfg_file, so
         #       at this point case_prefix is not known. So this part
@@ -1703,7 +1704,7 @@ class BMI_component:
         #-------------------------------------------------------------
         if (self.cfg_prefix == None):
                 self.cfg_prefix = self.case_prefix  # (10/25/11)
-             
+
         #---------------------------------------
         # Read input variables from a CFG file
         #---------------------------------------
@@ -1726,7 +1727,7 @@ class BMI_component:
         #-------------------------------------
         # print '#### CALLING check_directories()...'
         self.check_directories()  # (Moved up: 10/25/11)
-        
+
         #--------------------------------------------
         # Let driver set CWD to its in_directory ??
         #---------------------------------------------
@@ -1804,27 +1805,27 @@ class BMI_component:
 ##            # The driver passes one argument, the name of
 ##            # the sync_file to the initialize() method of
 ##            # each nondriver component.
-##            #------------------------------------------------            
+##            #------------------------------------------------
 ##            ## self.read_sync_file()
 ##            pass
-        
+
         #--------------------------------------------
         # Set any input variables that are computed
         #--------------------------------------------
         # print '#### CALLING set_computed_input_vars()...'
         self.set_computed_input_vars()
-        
+
         #-----------------------------------------------------
         # Not all components need this, so don't do it here.
         #-----------------------------------------------------
         # self.read_grid_info()   # (stores rti in self, adds "da")
-        
+
     #   initialize_config_vars()
     #-------------------------------------------------------------------
     def set_computed_input_vars( self):
 
         pass
-    
+
     #   set_computed_input_vars()
     #-------------------------------------------------------------------
     def initialize_basin_vars( self ):
@@ -1835,15 +1836,15 @@ class BMI_component:
         #------------------------------------------------------------
         outlets.read_outlet_file( self )
 
-    #   initialize_basin_vars()    
+    #   initialize_basin_vars()
     #-------------------------------------------------------------------
     #-------------------------------------------------------------------
     def prepend_directory(self, file_list, INPUT=True):
 
         #-----------------------------------------------------------
-        # (11/14/11) Call from a component's open_input_file() 
+        # (11/14/11) Call from a component's open_input_file()
         #  method something like this:
-        #   self.prepend_directory( ['slope_file', 'width_file'] ) 
+        #   self.prepend_directory( ['slope_file', 'width_file'] )
         #-----------------------------------------------------------
         #  e.g. self.slope_file = self.in_directory + self.slope_file
         #-----------------------------------------------------------
@@ -1900,7 +1901,7 @@ class BMI_component:
             #--------------------------------------
             if (self.out_directory[0] == '.'):
                 self.out_directory = self.cfg_directory
-               
+
         #------------------------------------------------------
         # Expand path abbreviations: "." and "..", but NOT
         # "~" (11/5/13)
@@ -1923,7 +1924,7 @@ class BMI_component:
         #------------------------------------------------------
         self.in_directory  = os.path.expanduser( self.in_directory  )
         self.out_directory = os.path.expanduser( self.out_directory )
-        
+
         #--------------------------------------------------
         # Add trailing separator to directory, if missing
         # Note: Must come AFTER os.path.realpath calls.
@@ -1935,7 +1936,14 @@ class BMI_component:
         # (self.out_directory != ''):
         if (self.out_directory[-1] != os.sep):
             self.out_directory += os.sep
-   
+
+        try:
+            os.makedirs(self.out_directory)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+
     #   check_directories()
     #-------------------------------------------------------------------
     def initialize_scalar(self, value=0.0, dtype='float64'):
@@ -1961,16 +1969,16 @@ class BMI_component:
         #   x.fill(5) is OK.
         #   x[:]=5 will generate this error:
         #      "ValueError: cannot slice a 0-d array"
-        # 
+        #
         # - Incrementing the value:
         #   x = (x+1) will BREAK the reference, but
         #   x += 1 is OK.
         #--------------------------------------------------------
         # Recall that most numpy array operators have an
         # optional third argument that allows "in-place" calcs.
-        #--------------------------------------------------------        
+        #--------------------------------------------------------
         return np.array(value, dtype=dtype)
-    
+
         #--------------------------------------------------------
         # If we create scalars like this, then:
         # - return var is MUTABLE and other components with
@@ -1997,7 +2005,7 @@ class BMI_component:
         # - numpy.rank(x) will return 0.
         #---------------------------------------------------------
         # return np.float64(0)
-        
+
     #   initialize_scalar()
     #-------------------------------------------------------------------
     def initialize_grid(self, value=0.0, dtype='float64'):
@@ -2095,13 +2103,13 @@ class BMI_component:
         # Don't do this:
         # n = getattr(self, var_name + '.ndim')
         #    or this
-        # exec("n = np.ndim(self." + var_name + ")")   
+        # exec("n = np.ndim(self." + var_name + ")")
         #------------------------------------------------
         try:
             var = getattr( self, var_name )
             n   = var.ndim
         except:
-            n = 0  
+            n = 0
         return (n == 0)
 
     #   is_scalar()
@@ -2112,20 +2120,20 @@ class BMI_component:
         # NB!  Case in var_name must be an exact match.
         #      Can always use np.ndim(), but can only
         #      use var.ndim if var has type ndarray.
-        #------------------------------------------------ 
+        #------------------------------------------------
         # Don't do this:
         # n = getattr(self, var_name + '.ndim')
         #    or this
-        # exec("n = np.ndim(self." + var_name + ")")   
-        #------------------------------------------------     
+        # exec("n = np.ndim(self." + var_name + ")")
+        #------------------------------------------------
         try:
             ### n = getattr(self, var_name + '.ndim')
             var = getattr( self, var_name )
             n   = var.ndim
         except:
-            n = 0  
+            n = 0
         return (n == 1)
-   
+
     #   is_vector()
     #-------------------------------------------------------------------
     def is_grid(self, var_name):
@@ -2134,26 +2142,18 @@ class BMI_component:
         # NB!  Case in var_name must be an exact match.
         #      Can always use np.ndim(), but can only
         #      use var.ndim if var has type ndarray.
-        #------------------------------------------------ 
+        #------------------------------------------------
         # Don't do this:
         # n = getattr(self, var_name + '.ndim')
         #    or this
-        # exec("n = np.ndim(self." + var_name + ")")   
+        # exec("n = np.ndim(self." + var_name + ")")
         #------------------------------------------------
         try:
             var = getattr( self, var_name )
             n   = var.ndim
         except:
-            n = 0  
+            n = 0
         return (n == 2)
 
     #   is_grid()
     #-------------------------------------------------------------------
-
-    
-
-
-
-
-    
-    

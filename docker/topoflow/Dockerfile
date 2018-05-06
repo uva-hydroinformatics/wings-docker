@@ -59,7 +59,6 @@ RUN pip install wheel
 RUN pip install --editable ./
 RUN pip install -U numpy==1.11.0
 # Make directory for input and output
-RUN mkdir -p /root/TF_Output/Treynor/
 RUN mkdir /app/data
 
 WORKDIR /usr/local/tomcat
